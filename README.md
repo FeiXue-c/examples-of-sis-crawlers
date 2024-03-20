@@ -43,3 +43,5 @@ dlSequentialSwitch = False
 ```
 
 启动脚本后会自动生成Books和NovelsUrl文件夹，其中Books用于存储txt文件，NovelsUrl用于存储分页url
+
+## 后续计划：没有后续计划，更新全看缘分,凑合着用得了
