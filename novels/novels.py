@@ -21,14 +21,13 @@ baseUrl = 'http://104.194.212.35/forum/forum-334-%d.html'
 # 网站当前IP
 currentIP = '104.194.212.35'
 # 下载列表序号（由于小说过多，暂未实现多线程下载）
-dlPageNum = 21
+dlPageNum = 1
 # 下载结束序号(不包括)
 dlEndPageNum = 31
 # 是否开启顺序下载
 dlSequentialSwitch = True
 # 是否开启更新抓取列表(初次使用请置为True)
 updateCrawlListSwitch = False
-
 
 
 def check_directory(directory_path):
@@ -65,16 +64,17 @@ def get_partition_url(pagenum, baseurl):
         html = r.text
 
         soup = BeautifulSoup(html, "html.parser")
-        for line in soup.find_all(id=re.compile("^normalthread")):
-            if line is not None:
-                comments = line.find('strong')
+
+        for tbody in soup.find_all('tbody', attrs={'id': lambda value: 'normalthread' in value}):
+            if tbody is not None:
+                comments = tbody.find('strong')
                 if comments is not None:
                     if comments.string.isdigit() and int(comments.string) >= 0:
-                        span = line.find(id=re.compile("^thread"))
-                        if not span.contents[0].string:
-                            continue
-                        info.append({'link': 'http://' + currentIP + '/forum/' + span.contents[0].get('href'),
-                                     'text': span.contents[0].string})
+                        span = tbody.find('span', attrs={'id': re.compile(r'^thread_\d+$')})
+                        if span.a is not None:
+                            href = 'http://' + currentIP + '/forum/' + span.a.get('href')
+                            msg = span.a.string
+                            info.append({'link': href, 'text': msg})
 
         # 创建 PackageLoader 实例，传入包名和模板目录
         loader = PackageLoader('novels', 'templates')
@@ -166,10 +166,9 @@ if __name__ == '__main__':
     # for debug
     # def_get_url_from_txt()
 
-    print("开始拉取链接")
-
-    start_time = time.time()  # 记录开始时间
     if updateCrawlListSwitch:
+        print("开始拉取链接")
+        start_time = time.time()  # 记录开始时间
         # 多进程提高方法执行速度
         for fileNum in range(0, totalFile):
             p = multiprocessing.Process(target=get_partition_url, args=(startPage + fileNum * 10, baseUrl))
@@ -180,9 +179,9 @@ if __name__ == '__main__':
         for p in processes:
             p.join()
 
-    end_time = time.time()  # 记录结束时间
-    total_time = end_time - start_time
-    print(f'All workers have finished. Total time taken: {total_time:.2f} seconds.')
+        end_time = time.time()  # 记录结束时间
+        total_time = end_time - start_time
+        print(f'All workers have finished. Total time taken: {total_time:.2f} seconds.')
 
     print("开始抓取文本")
     if dlSequentialSwitch:
