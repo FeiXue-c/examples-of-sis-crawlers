@@ -21,7 +21,7 @@ baseUrl = 'http://104.194.212.35/forum/forum-334-%d.html'
 # 网站当前IP
 currentIP = '104.194.212.35'
 # 下载列表序号（由于小说过多，暂未实现多线程下载）
-dlPageNum = 10
+dlPageNum = 11
 # 是否开启顺序下载
 dlSequentialSwitch = True
 
@@ -118,19 +118,20 @@ def get_txt_by_url(url, title):
     body = soup.form
 
     # 主贴内容
-    div_tags = body.find_all("div", recursive=False)
-    with open('../Books/' + title + ".txt", 'a', encoding='utf-8') as file:
-        for div in div_tags:
-            for content in div.find_all(attrs={"class": "t_msgfont noSelect"}):
-                text_content = content.get_text(separator="\n", strip=True)
-                file.write(text_content + "\n")
+    if body is not None:
+        div_tags = body.find_all("div", recursive=False)
+        with open('../Books/' + title + ".txt", 'a', encoding='utf-8') as file:
+            for div in div_tags:
+                for content in div.find_all(attrs={"class": "t_msgfont noSelect"}):
+                    text_content = content.get_text(separator="\n", strip=True)
+                    file.write(text_content + "\n")
 
-    next_href = soup.find(attrs={"class": "pages_btns"}).find(attrs={"class": "next"})
-    # .find(attrs={"class": "next"}).get('href'))
-    if next_href is not None:
-        next_url = 'http://' + currentIP + '/forum/' + next_href.get('href')
-        #print("next_url:" + next_url)
-        get_txt_by_url(next_url, title)
+        next_href = soup.find(attrs={"class": "pages_btns"}).find(attrs={"class": "next"})
+        # .find(attrs={"class": "next"}).get('href'))
+        if next_href is not None:
+            next_url = 'http://' + currentIP + '/forum/' + next_href.get('href')
+            #print("next_url:" + next_url)
+            get_txt_by_url(next_url, title)
 
 
 if __name__ == '__main__':
@@ -142,6 +143,7 @@ if __name__ == '__main__':
     totalFile = int((endPage - startPage) / 10 + 1)
 
     print("开始拉取链接")
+
     start_time = time.time()  # 记录开始时间
     # 多进程提高方法执行速度
     for fileNum in range(0, totalFile):
