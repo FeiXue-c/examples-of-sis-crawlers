@@ -21,7 +21,7 @@ baseUrl = 'http://104.194.212.35/forum/forum-334-%d.html'
 # 网站当前IP
 currentIP = '104.194.212.35'
 # 下载列表序号（由于小说过多，暂未实现多线程下载）
-dlPageNum = 1
+dlPageNum = 10
 # 是否开启顺序下载
 dlSequentialSwitch = True
 
@@ -41,9 +41,9 @@ def check_directory(directory_path):
 def format_filename(filename):
     # 使用正则表达式匹配非UTF-8字符和一些常见的转义字符
     # 这里使用了Python的原始字符串(r前缀)来避免对反斜杠的额外转义
-    pattern = r'[\x00-\x1F\x7F-\xFF]|[\x80-\xBF](?![\x80-\xBF])|(?<![\xC0-\xDF])[\x80-\xBF]|/'
+    pattern = r'[\x00-\x1F\x7F-\xFF]|[\x80-\xBF](?![\x80-\xBF])|(?<![\xC0-\xDF])[\x80-\xBF]|[/<>]'
     # 替换匹配到的字符为空格
-    res_filename = re.sub(pattern, ' ', filename)
+    res_filename = re.sub(pattern, '', filename)
     return res_filename
 
 
