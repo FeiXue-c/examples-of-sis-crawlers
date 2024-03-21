@@ -22,11 +22,13 @@ baseUrl = 'http://104.194.212.35/forum/forum-334-%d.html'
 currentIP = '104.194.212.35'
 # 下载列表序号（由于小说过多，暂未实现多线程下载）
 dlPageNum = 21
+# 下载结束序号(不包括)
+dlEndPageNum = 31
 # 是否开启顺序下载
 dlSequentialSwitch = True
+# 是否开启更新抓取列表(初次使用请置为True)
+updateCrawlListSwitch = False
 
-# URL更新进度标志(勿动)
-update_flag = 0
 
 
 def check_directory(directory_path):
@@ -86,13 +88,29 @@ def get_partition_url(pagenum, baseurl):
         filename = '../NovelsUrl/sisNovels-%d.html'
         with open(filename % i, 'w', encoding='utf-8') as file:
             file.write(content + "\n")
-    global update_flag
-    update_flag = update_flag + 1
 
 
 def get_url_from_txt(x):
     html_file_path = '../NovelsUrl/sisNovels-%d.html'
     with open(html_file_path % x, 'r', encoding='utf-8') as file:
+        html_content = file.read()
+    soup = BeautifulSoup(html_content, 'html.parser')
+    # 查找所有的<a>标签
+    links = soup.find_all('a')
+    print(len(links))
+    # 遍历所有<a>标签，并打印出href属性的值
+    for link in links:
+        href = link.get('href')
+        filename = link.string
+        if href:
+            filename = format_filename(filename)
+            clean_file(filename)
+            get_txt_by_url(href, filename)
+
+
+def def_get_url_from_txt():
+    html_file_path = '../NovelsUrl/sisNovels-default.html'
+    with open(html_file_path, 'r', encoding='utf-8') as file:
         html_content = file.read()
     soup = BeautifulSoup(html_content, 'html.parser')
     # 查找所有的<a>标签
@@ -129,10 +147,12 @@ def get_txt_by_url(url, title):
         next_href = soup.find(attrs={"class": "pages_btns"}).find(attrs={"class": "next"})
         if next_href is not None:
             next_url = 'http://' + currentIP + '/forum/' + next_href.get('href')
-            # print("next_url:" + next_url)
             get_txt_by_url(next_url, title)
     else:
         print("error:" + title)
+        with open('../Books/0failfile.txt', 'a', encoding='utf-8') as file:
+            error_info = title + "\n" + url + "\n\n"
+            file.write(error_info)
 
 
 if __name__ == '__main__':
@@ -143,18 +163,22 @@ if __name__ == '__main__':
 
     totalFile = int((endPage - startPage) / 10 + 1)
 
+    # for debug
+    # def_get_url_from_txt()
+
     print("开始拉取链接")
 
     start_time = time.time()  # 记录开始时间
-    # 多进程提高方法执行速度
-    for fileNum in range(0, totalFile):
-        p = multiprocessing.Process(target=get_partition_url, args=(startPage + fileNum * 10, baseUrl))
-        processes.append(p)
-        p.start()  # 启动子进程
+    if updateCrawlListSwitch:
+        # 多进程提高方法执行速度
+        for fileNum in range(0, totalFile):
+            p = multiprocessing.Process(target=get_partition_url, args=(startPage + fileNum * 10, baseUrl))
+            processes.append(p)
+            p.start()  # 启动子进程
 
-    # 等待所有子进程结束
-    for p in processes:
-        p.join()
+        # 等待所有子进程结束
+        for p in processes:
+            p.join()
 
     end_time = time.time()  # 记录结束时间
     total_time = end_time - start_time
@@ -162,7 +186,7 @@ if __name__ == '__main__':
 
     print("开始抓取文本")
     if dlSequentialSwitch:
-        for i in range(dlPageNum, endPage + 1):
+        for i in range(dlPageNum, dlEndPageNum):
             print("开始第%d页抓取" % i)
             get_url_from_txt(i)
             print("已完成第%d页抓取" % i)
