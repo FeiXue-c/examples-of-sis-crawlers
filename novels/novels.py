@@ -21,7 +21,7 @@ baseUrl = 'http://104.194.212.35/forum/forum-334-%d.html'
 # 网站当前IP
 currentIP = '104.194.212.35'
 # 下载列表序号（由于小说过多，暂未实现多线程下载）
-dlPageNum = 11
+dlPageNum = 21
 # 是否开启顺序下载
 dlSequentialSwitch = True
 
@@ -41,16 +41,16 @@ def check_directory(directory_path):
 def format_filename(filename):
     # 使用正则表达式匹配非UTF-8字符和一些常见的转义字符
     # 这里使用了Python的原始字符串(r前缀)来避免对反斜杠的额外转义
-    pattern = r'[\x00-\x1F\x7F-\xFF]|[\x80-\xBF](?![\x80-\xBF])|(?<![\xC0-\xDF])[\x80-\xBF]|[/<>]'
+    pattern = r'[\x00-\x1F\x3A\x3F\x2F\x2A\x22\x7F-\xFF]|[\x80-\xBF](?![\x80-\xBF])|(?<![\xC0-\xDF])[\x80-\xBF]|[<>]'
     # 替换匹配到的字符为空格
-    res_filename = re.sub(pattern, '', filename)
+    res_filename = re.sub(pattern, ' ', filename)
     return res_filename
 
 
 def clean_file(filename):
     with open('../Books/' + filename + ".txt", 'w', encoding='utf-8') as file:
         file.write(filename + '\n')
-        print(f"文件 {filename} 已清空")
+        print(f"文件 {'../Books/' + filename + ".txt"} 已清空")
 
 
 def get_partition_url(pagenum, baseurl):
@@ -109,7 +109,7 @@ def get_url_from_txt(x):
 
 
 def get_txt_by_url(url, title):
-    #print(title+"||"+url)
+    # print(title+"||"+url)
     r = requests.get(url)
     r.encoding = 'utf-8'
     html = r.text
@@ -127,11 +127,12 @@ def get_txt_by_url(url, title):
                     file.write(text_content + "\n")
 
         next_href = soup.find(attrs={"class": "pages_btns"}).find(attrs={"class": "next"})
-        # .find(attrs={"class": "next"}).get('href'))
         if next_href is not None:
             next_url = 'http://' + currentIP + '/forum/' + next_href.get('href')
-            #print("next_url:" + next_url)
+            # print("next_url:" + next_url)
             get_txt_by_url(next_url, title)
+    else:
+        print("error:" + title)
 
 
 if __name__ == '__main__':
