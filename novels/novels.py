@@ -37,6 +37,21 @@ def check_directory(directory_path):
         print(f"An error occurred while creating the directory {directory_path}: {e}")
 
 
+def format_filename(filename):
+    # 使用正则表达式匹配非UTF-8字符和一些常见的转义字符
+    # 这里使用了Python的原始字符串(r前缀)来避免对反斜杠的额外转义
+    pattern = r'[\x00-\x1F\x7F-\xFF]|[\x80-\xBF](?![\x80-\xBF])|(?<![\xC0-\xDF])[\x80-\xBF]'
+    # 替换匹配到的字符为空格
+    res_filename = re.sub(pattern, ' ', filename)
+    return res_filename
+
+
+def clean_file(filename):
+    with open('../Books/' + filename + ".txt", 'w', encoding='utf-8') as file:
+        file.write(filename+'\n')
+        print(f"文件 {filename} 已清空")
+
+
 def get_partition_url(pagenum, baseurl):
     global update_flag
     base_url = baseurl
@@ -88,10 +103,12 @@ def get_url_from_txt(x):
         filename = link.string
         if href:
             print(href)
+            filename = format_filename(filename)
+            clean_file(filename)
             get_txt_by_url(href, filename)
 
 
-def get_txt_by_url(url, name):
+def get_txt_by_url(url, title):
     print(url)
     r = requests.get(url)
     r.encoding = 'utf-8'
@@ -101,20 +118,21 @@ def get_txt_by_url(url, name):
     body = soup.form
 
     # 文章标题
-    # 使用正则表达式匹配非UTF-8字符和一些常见的转义字符
-    # 这里使用了Python的原始字符串(r前缀)来避免对反斜杠的额外转义
-    pattern = r'[\x00-\x1F\x7F-\xFF]|[\x80-\xBF](?![\x80-\xBF])|(?<![\xC0-\xDF])[\x80-\xBF]'
-    # 替换匹配到的字符为空格
-    title = re.sub(pattern, ' ', name)
     print(title)
     # 主贴内容
     div_tags = body.find_all("div", recursive=False)
-    with open('../Books/' + title + ".txt", 'w', encoding='utf-8') as file:
+    with open('../Books/' + title + ".txt", 'a', encoding='utf-8') as file:
         for div in div_tags:
             for content in div.find_all(attrs={"class": "t_msgfont noSelect"}):
                 text_content = content.get_text(separator="\n", strip=True)
                 file.write(text_content + "\n")
 
+    next_href = soup.find(attrs={"class": "pages_btns"}).find(attrs={"class": "next"})
+    # .find(attrs={"class": "next"}).get('href'))
+    if next_href is not None:
+        next_url = 'http://' + currentIP + '/forum/' + next_href.get('href')
+        print("next_url:"+next_url)
+        get_txt_by_url(next_url, title)
 
 
 if __name__ == '__main__':
