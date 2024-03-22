@@ -183,9 +183,11 @@ def get_txt_by_url(url, title):
 def process_br_tags(text):
     # 使用正则表达式将<br>标签替换为换行符
     text_with_br = text.replace('<br>', '\n')
-    # 使用splitlines()分割文本，然后根据条件重新连接，以移除孤立的换行符
+    # 使用splitlines()分割文本
     lines = text_with_br.splitlines()
-    processed_lines = [lines[0]]  # 始终保留第一行，即使它是空的
+    if not lines:  # 如果列表为空，则直接返回空字符串
+        return ""
+    processed_lines = [lines[0]]  # 如果列表不为空，始终保留第一行
     for line in lines[1:]:
         if line.strip() or not processed_lines[-1].strip():
             processed_lines.append(line)
