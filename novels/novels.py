@@ -23,9 +23,9 @@ currentIP = '104.194.212.35'
 # 下载列表序号（由于小说过多，暂未实现多线程下载）
 dlPageNum = 1
 # 下载结束序号(不包括)
-dlEndPageNum = 31
+dlEndPageNum = 81
 # 是否开启顺序下载
-dlSequentialSwitch = True
+dlSequentialSwitch = False
 # 是否开启更新抓取列表(初次使用请置为True)
 updateCrawlListSwitch = False
 
@@ -57,9 +57,9 @@ def clean_file(filename):
 def get_partition_url(pagenum, baseurl):
     base_url = baseurl
 
-    for i in range(pagenum, pagenum + 10):
+    for page in range(pagenum, pagenum + 10):
         info = []
-        r = requests.get(base_url % i)
+        r = requests.get(base_url % page)
         r.encoding = 'utf-8'
         html = r.text
 
@@ -86,7 +86,7 @@ def get_partition_url(pagenum, baseurl):
         content = template.render(information=info)
 
         filename = '../NovelsUrl/sisNovels-%d.html'
-        with open(filename % i, 'w', encoding='utf-8') as file:
+        with open(filename % page, 'w', encoding='utf-8') as file:
             file.write(content + "\n")
 
 
@@ -126,6 +126,29 @@ def def_get_url_from_txt():
             get_txt_by_url(href, filename)
 
 
+def organize_text_formatting(soup):
+    # 提取所有的文本内容，保留换行和空格
+    text = soup.get_text(strip=True, separator='\n')
+
+    # 处理连续的<br>标签
+    lines = text.split('\n')
+    processed_lines = []
+    consecutive_br = False
+    for line in lines:
+        if line.strip() == '<br>':
+            if consecutive_br:
+                processed_lines.append('')  # 添加一个空行，表示两个连续的<br>
+            consecutive_br = True
+        else:
+            consecutive_br = False
+            if line.strip():  # 如果行不为空，则添加到结果中
+                processed_lines.append(line)
+
+    # 将处理后的行合并回一个字符串
+    processed_text = '\n'.join(processed_lines)
+    return processed_text
+
+
 def get_txt_by_url(url, title):
     # print(title+"||"+url)
     r = requests.get(url)
@@ -141,8 +164,9 @@ def get_txt_by_url(url, title):
         with open('../Books/' + title + ".txt", 'a', encoding='utf-8') as file:
             for div in div_tags:
                 for content in div.find_all(attrs={"class": "t_msgfont noSelect"}):
-                    text_content = content.get_text(separator="\n", strip=True)
-                    file.write(text_content + "\n")
+                    text_content = extract_and_process_text(content)
+                    if len(text_content) > 100:
+                        file.write(text_content + "\n")
 
         next_href = soup.find(attrs={"class": "pages_btns"}).find(attrs={"class": "next"})
         if next_href is not None:
@@ -155,6 +179,29 @@ def get_txt_by_url(url, title):
             file.write(error_info)
 
 
+# 自定义函数来处理<br>标签，保留连续的换行符，移除孤立的换行符
+def process_br_tags(text):
+    # 使用正则表达式将<br>标签替换为换行符
+    text_with_br = text.replace('<br>', '\n')
+    # 使用splitlines()分割文本，然后根据条件重新连接，以移除孤立的换行符
+    lines = text_with_br.splitlines()
+    processed_lines = [lines[0]]  # 始终保留第一行，即使它是空的
+    for line in lines[1:]:
+        if line.strip() or not processed_lines[-1].strip():
+            processed_lines.append(line)
+    return '\n'.join(processed_lines)
+
+
+# 提取并处理文本
+def extract_and_process_text(soup):
+    # 提取所有文本节点，包括<br>标签之间的文本
+    text_nodes = soup.find_all(string=True, recursive=True)
+    # 拼接所有文本节点，同时保留<br>标签
+    raw_text = ''.join(text_nodes)
+    # 处理<br>标签，保留连续的换行符，移除孤立的换行符
+    processed_text = process_br_tags(raw_text)
+    return processed_text.strip()
+
 if __name__ == '__main__':
     processes = []
     # 检查环境
@@ -162,7 +209,6 @@ if __name__ == '__main__':
     check_directory('../NovelsUrl')
 
     totalFile = int((endPage - startPage) / 10 + 1)
-
     # for debug
     # def_get_url_from_txt()
 
